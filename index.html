@@ -118,6 +118,7 @@ details div{white-space:pre-wrap;margin-top:6px;padding:10px 14px;background:var
 .rep b{display:block;font-weight:700;line-height:1.25}
 .rep small{display:block;color:var(--ink2);font-size:13px}
 .rep .post{color:var(--flag-d);font-weight:700}
+.calls{display:flex;flex-direction:column;gap:6px}
 .call{display:flex;gap:6px}
 .call a{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;border:1.5px solid var(--line);color:var(--navy);text-decoration:none}
 .call a:hover{background:var(--navy);color:#fff;border-color:var(--navy)}
@@ -199,8 +200,8 @@ dialog .row{display:flex;gap:10px;justify-content:flex-end;margin-top:6px}
         <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="rq" type="search" placeholder="Search name, post or unit" aria-label="Search representatives"></label>
         <select id="ru" aria-label="Filter by unit"></select>
       </div>
-      <div class="rtop"><div class="count" id="rcount" style="margin:0"></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn line" id="rep-reset" hidden>Discard my edits</button><button class="btn line" id="rep-dl" hidden>Download updated file</button><button class="btn" id="rep-add" hidden>Add representative</button></div></div>
-      <div class="hint" id="rep-note" style="margin:8px 0 10px" hidden></div>
+      <div class="rtop"><div class="count" id="rcount" style="margin:0"></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn line" id="rep-reset" hidden>Discard my edits</button><button class="btn" id="rep-add" hidden>Add representative</button></div></div>
+      <div style="height:10px"></div>
       <div class="reps" id="reps"></div>
     </section>
 
@@ -224,13 +225,14 @@ dialog .row{display:flex;gap:10px;justify-content:flex-end;margin-top:6px}
 
 <dialog id="dlg-rep">
   <h2 id="rf-title">Add representative</h2>
-  <p class="hint" style="margin:4px 0 18px">Saved in this browser. To publish for everyone, use “Download updated file” and replace the hosted page.</p>
+  <p class="hint" style="margin:4px 0 18px">Changes are saved when you press Save.</p>
   <div class="f"><label for="rf-post">Post</label><input id="rf-post" list="rf-posts" placeholder="e.g. Vice President"><datalist id="rf-posts"></datalist></div>
   <div class="f"><label for="rf-name">Name</label><input id="rf-name" placeholder="Com. Full Name"></div>
   <div class="two">
     <div class="f"><label for="rf-unit">Unit</label><input id="rf-unit" list="rf-units" placeholder="e.g. IBOF TN"><datalist id="rf-units"></datalist></div>
-    <div class="f"><label for="rf-phone">Mobile (10 digits)</label><input id="rf-phone" inputmode="numeric" maxlength="10" placeholder="Optional"></div>
+    <div class="f"><label for="rf-phone">Mobile 1 (10 digits)</label><input id="rf-phone" inputmode="numeric" maxlength="10" placeholder="Optional"></div>
   </div>
+  <div class="f"><label for="rf-phone2">Mobile 2 (10 digits)</label><input id="rf-phone2" inputmode="numeric" maxlength="10" placeholder="Optional"></div>
   <div class="msg" id="rf-msg" role="status"></div>
   <div class="row"><button type="button" class="btn line" id="rf-cancel">Cancel</button><button type="button" class="btn" id="rf-save">Save</button></div>
 </dialog>
@@ -393,7 +395,7 @@ $('dlg-prev').addEventListener('close',function(){$('pv-frame').src='about:blank
 document.addEventListener('click',function(e){var p=e.target.closest('[data-prev]');if(p){$('pv-frame').src='https://drive.google.com/file/d/'+p.dataset.prev+'/preview';$('pv-open').href='https://drive.google.com/file/d/'+p.dataset.prev+'/view';$('dlg-prev').showModal();return}var b=e.target.closest('[data-del]');if(b)removeCirc(b.dataset.del,b)});
 
 /* ── representatives ── */
-var REPS=AIBOA_CONTACTS.map(function(c){return {post:c.post,name:c.name,unit:c.unit,phone:c.phone||''}}), EDIT=-1;
+var REPS=AIBOA_CONTACTS.map(function(c){return {post:c.post,name:c.name,unit:c.unit,phone:c.phone||'',phone2:c.phone2||''}}), EDIT=-1;
 var TOP=['Chairman','Dy Chairman','President','General Secretary'];
 function isVac(c){return /vacant/i.test(c.name)}
 function buildUnits(){
@@ -415,18 +417,19 @@ function drawReps(){
     rows.push({c:c,i:i});
   });
   $('rcount').textContent=rows.length+(rows.length===1?' representative':' representatives');
-  $('rep-add').hidden=!ADMIN;$('rep-dl').hidden=!ADMIN||!dirty();$('rep-reset').hidden=!ADMIN||!dirty();
-  $('rep-note').hidden=!ADMIN||!dirty();$('rep-note').textContent='You have unpublished edits. They show only in this browser until you press “Download updated file” and replace the hosted index.html.';
+  $('rep-add').hidden=!ADMIN;$('rep-reset').hidden=!ADMIN||!dirty();
   $('reps').innerHTML=rows.length?rows.map(function(r){
-    var c=r.c,n=c.name.replace(/^Com\.\s*/,''),ph=c.phone;
-    var act=ph?'<div class="call"><a href="tel:+91'+esc(ph)+'" aria-label="Call '+esc(n)+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/></svg></a><a href="https://wa.me/91'+esc(ph)+'" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp '+esc(n)+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1.3-4A8 8 0 118 18.8z"/></svg></a></div>':(isVac(c)?'':'<span class="na">No number listed</span>');
+    var c=r.c,n=c.name.replace(/^Com\.\s*/,''),nums=[c.phone,c.phone2].filter(Boolean),ph=nums.join(' · ');
+    var ICO_C='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/></svg>';
+    var ICO_W='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1.3-4A8 8 0 118 18.8z"/></svg>';
+    var act=nums.length?'<div class="calls">'+nums.map(function(p){return '<div class="call"><a href="tel:+91'+esc(p)+'" aria-label="Call '+esc(n)+' on '+esc(p)+'">'+ICO_C+'</a><a href="https://wa.me/91'+esc(p)+'" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp '+esc(n)+' on '+esc(p)+'">'+ICO_W+'</a></div>'}).join('')+'</div>':(isVac(c)?'':'<span class="na">No number listed</span>');
     var adm=ADMIN?'<div class="radm"><button class="btn line mini" data-redit="'+r.i+'">Edit</button><button class="btn line mini del" data-rdel="'+r.i+'">Remove</button></div>':'';
     return '<div class="rep'+(TOP.indexOf(c.post)>-1?' top':'')+(isVac(c)?' vac':'')+'"><div class="av" aria-hidden="true">'+esc(n.charAt(0))+'</div><div class="i"><b>'+esc(n)+'</b><small><span class="post">'+esc(c.post)+'</span></small><small>'+esc(c.unit)+(ph?' · '+esc(ph):'')+'</small>'+adm+'</div>'+act+'</div>';
   }).join(''):'<div class="state" style="grid-column:1/-1"><b>No matches</b>Try a shorter search or choose All units.</div>';
 }
 $('rq').oninput=drawReps;$('ru').onchange=drawReps;
 
-/* edits are kept in this browser as a draft; “Download updated file” bakes them into the HTML */
+/* edits are kept in this browser as a draft */
 var BASE=JSON.stringify(REPS), DKEY='aiboa_reps_draft';
 function loadDraft(){
   try{var d=JSON.parse(localStorage.getItem(DKEY)||'null');
@@ -436,47 +439,26 @@ function dirty(){return JSON.stringify(REPS)!==BASE}
 function saveDraft(){
   try{if(dirty())localStorage.setItem(DKEY,JSON.stringify({base:BASE,reps:REPS}));else localStorage.removeItem(DKEY)}catch(e){}
 }
-function repsSource(){
-  var L=['var AIBOA_CONTACTS = ['];
-  REPS.forEach(function(c){
-    L.push('  { post:'+JSON.stringify(c.post)+', name:'+JSON.stringify(c.name)+', unit:'+JSON.stringify(c.unit)+', phone:'+JSON.stringify(c.phone||'')+' },');
-  });
-  L.push('];');return L.join('\n');
-}
-function download(name,text,type){
-  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:type}));a.download=name;
-  document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(a.href)},2000);
-}
-$('rep-dl').onclick=function(){
-  var src=repsSource();
-  fetch(location.href.split('#')[0],{cache:'no-store'}).then(function(r){if(!r.ok)throw 0;return r.text()}).then(function(html){
-    var re=/var AIBOA_CONTACTS = \[[\s\S]*?\n\];/;
-    if(!re.test(html))throw 0;
-    download('index.html',html.replace(re,function(){return src}),'text/html');
-  }).catch(function(){
-    download('representatives-list.txt','Replace the existing "var AIBOA_CONTACTS = [ ... ];" block in index.html with this:\n\n'+src+'\n','text/plain');
-    alert('Couldn’t read the page source here (this happens when the file is opened directly from a folder). I downloaded the updated list instead. Paste it over the AIBOA_CONTACTS block in index.html.');
-  });
-};
 $('rep-reset').onclick=function(){
   if(!confirm('Discard your edits and go back to the list saved in the file?'))return;
   REPS=JSON.parse(BASE);saveDraft();drawReps();
 };
 
 function openRep(i){
-  EDIT=i;var c=i>-1?REPS[i]:{post:'',name:'',unit:'',phone:''};
+  EDIT=i;var c=i>-1?REPS[i]:{post:'',name:'',unit:'',phone:'',phone2:''};
   $('rf-title').textContent=i>-1?'Edit representative':'Add representative';
-  $('rf-post').value=c.post;$('rf-name').value=isVac(c)?'':c.name;$('rf-unit').value=c.unit;$('rf-phone').value=c.phone;
+  $('rf-post').value=c.post;$('rf-name').value=isVac(c)?'':c.name;$('rf-unit').value=c.unit;$('rf-phone').value=c.phone||'';$('rf-phone2').value=c.phone2||'';
   $('rf-msg').textContent='';$('dlg-rep').showModal();$('rf-name').focus();
 }
 function saveReps(next,btn,label,done){REPS=next;saveDraft();drawReps();done&&done(true)}
 $('rep-add').onclick=function(){openRep(-1)};
 $('rf-cancel').onclick=function(){$('dlg-rep').close()};
 $('rf-save').onclick=function(){
-  var m=$('rf-msg'),p=$('rf-post').value.trim(),n=$('rf-name').value.trim(),u=$('rf-unit').value.trim(),ph=$('rf-phone').value.replace(/\D/g,'');
+  var m=$('rf-msg'),p=$('rf-post').value.trim(),n=$('rf-name').value.trim(),u=$('rf-unit').value.trim(),ph=$('rf-phone').value.replace(/\D/g,''),ph2=$('rf-phone2').value.replace(/\D/g,'');
   if(!p||!n){m.className='msg bad';m.textContent='Post and name are required.';return}
-  if(ph&&ph.length!==10){m.className='msg bad';m.textContent='Mobile number must be 10 digits, or leave it blank.';return}
-  var next=REPS.slice(),rec={post:p,name:n,unit:u,phone:ph};
+  if((ph&&ph.length!==10)||(ph2&&ph2.length!==10)){m.className='msg bad';m.textContent='Mobile numbers must be 10 digits, or leave them blank.';return}
+  if(!ph&&ph2){ph=ph2;ph2=''}
+  var next=REPS.slice(),rec={post:p,name:n,unit:u,phone:ph,phone2:ph2};
   if(EDIT>-1)next[EDIT]=rec;else next.push(rec);
   saveReps(next,this,'Save',function(ok,err){
     if(ok)$('dlg-rep').close();else{m.className='msg bad';m.textContent=err}
